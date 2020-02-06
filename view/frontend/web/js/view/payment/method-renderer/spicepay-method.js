@@ -39,31 +39,6 @@
 
          placeOrder: function (data, event) {
 
-            //  var test = $.ajax({
-
-            //      url: url.build('spicepay/payment/testConnection'),
-            //      type: 'POST',
-            //      async: false,
-            //      dataType: 'json'
-            //  });
-
-            // var result = null;
-
-            //  test.done(function (response)  {
-
-            //      if (response.status === false) {
-
-            //          alert(response.reason + "\n Please contract merchant");
-            //          location.reload();
-            //          result = false;
-            //      }
-            //  });
-
-            // if (result === false){
-
-            //     return false;
-            // }
-
              if (event) {
                  event.preventDefault();
              }
@@ -95,18 +70,23 @@
          },
 
          afterPlaceOrder: function (quoteId) {
+            var firstname = window.checkoutConfig.customerData.firstname;
+            var lastname = window.checkoutConfig.customerData.lastname;
+            var currency = window.checkoutConfig.quoteData.store_currency_code;
+            var grand_total = window.checkoutConfig.quoteData.grand_total;
+            var spicepay_site_id = window.checkoutConfig.spicepay_site_id;
 
             var url = 'https://www.spicepay.com/p.php';
             var form = $('<form action="' + url + '" method="post">' +
-              '<input type="text" name="amount" value="200" />' +
-              '<input type="text" name="currency" value="EUR" />' +
+              '<input type="text" name="amount" value="'+grand_total+'" />' +
+              '<input type="text" name="currency" value="'+currency+'" />' +
               '<input type="text" name="orderId" value="' + quoteId + '" />' +
-              '<input type="text" name="siteId" value="897" />' +
-              '<input type="text" name="clientName" value="Vlad" />' +
+              '<input type="text" name="siteId" value="'+spicepay_site_id+'" />' +
+              '<input type="text" name="clientName" value="'+firstname+' '+ lastname+'" />' +
               '<input type="text" name="language" value="en" />' +
               '</form>');
             $('body').append(form);
-            form.submit();
+            // form.submit();
 
          }
      });

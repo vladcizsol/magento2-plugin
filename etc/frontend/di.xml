@@ -24,6 +24,7 @@
         <arguments>
             <argument name="configProviders" xsi:type="array">
                 <item name="spicepay_merchant_config_provider" xsi:type="object">SpicePay\Merchant\Model\ConfigProvider</item>
+                <item name="additional_provider" xsi:type="object">SpicePay\Merchant\Model\AdditionalConfigVars</item>
             </argument>
         </arguments>
     </type>

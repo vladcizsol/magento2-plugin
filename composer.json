@@ -1,16 +1,8 @@
 {
-    "name": "vladcizsol/magento2-plugin",
+    "name": "spicepay/magento2-plugin",
     "type": "magento2-module",
     "description": "Bitcoin and Altcoin Payment Gateway for Magento 2 via SpicePay",
-    "version": "1.2.6",
-    "minimum-stability": "dev",
-    "prefer-stable": true,
-    "repositories": [
-        {
-            "type": "composer",
-            "url": "https://repo.magento.com/"
-        }       
-    ],
+    "version": "1.0.0",
     "keywords": [
       "spicepay",
       "bitcoin",
@@ -36,7 +28,7 @@
         }
     ],
     "require": {
-        "vladcizsol/spicepay-php": "3.*"
+        "spicepay/spicepay-php": "3.*"
     },
     "autoload": {
         "files": [ "registration.php" ],

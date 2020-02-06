@@ -33,7 +33,7 @@ use Magento\Sales\Api\OrderManagementInterface;
 
 class Payment extends AbstractMethod
 {
-    const COINGATE_MAGENTO_VERSION = '1.2.6';
+    const COINGATE_MAGENTO_VERSION = '1.0.0';
     const CODE = 'spicepay_merchant';
 
     protected $_code = 'spicepay_merchant';
@@ -100,62 +100,21 @@ class Payment extends AbstractMethod
         $this->orderManagement = $orderManagement;
         $this->spicepay = $spicepay;
 
-        \SpicePay\SpicePay::config([
-            'environment' => $this->getConfigData('sandbox_mode') ? 'sandbox' : 'live',
-            'siteId'  => $this->getConfigData('spicepay_site_id'),
-            'user_agent'  => 'SpicePay - Magento 2 Extension v' . self::COINGATE_MAGENTO_VERSION
-        ]);
     }
 
     /**
      * @param Order $order
      * @return array
      */
-    public function getSpicePayRequest(Order $order)
+    public function getSpicePayRequest($order)
     {
-        $token = substr(md5(rand()), 0, 32);
-
-        $payment = $order->getPayment();
-        $payment->setAdditionalInformation('spicepay_order_token', $token);
-        $payment->save();
-
-        $description = [];
-        foreach ($order->getAllItems() as $item) {
-            $description[] = number_format($item->getQtyOrdered(), 0) . ' × ' . $item->getName();
-        }
-
-        $params = [
-            'order_id' => $order->getIncrementId(),
-            'price_amount' => number_format($order->getGrandTotal(), 2, '.', ''),
-            'price_currency' => $order->getOrderCurrencyCode(),
-            'receive_currency' => $this->getConfigData('receive_currency'),
-            'callback_url' => ($this->urlBuilder->getUrl('spicepay/payment/callback') .
-               '?token=' . $payment->getAdditionalInformation('spicepay_order_token')),
-            'cancel_url' => $this->urlBuilder->getUrl('spicepay/payment/cancelOrder'),
-            'success_url' => $this->urlBuilder->getUrl('spicepay/payment/returnAction'),
-            'title' => $this->storeManager->getWebsite()->getName(),
-            'description' => join($description, ', '),
-            'token' => $payment->getAdditionalInformation('spicepay_order_token')
-        ];
-
-        $cgOrder = \SpicePay\Merchant\Order::create($params);
-
-        if ($cgOrder) {
-            return [
-                'status' => true,
-                'payment_url' => $cgOrder->payment_url
-            ];
-        } else {
-            return [
-                'status' => false
-            ];
-        }
+        $update_order = $this->validateSpicePayCallback($order);
     }
 
     /**
      * @param Order $order
      */
-    public function validateSpicePayCallback(Order $order)
+    public function validateSpicePayCallback($order)
     {
         try {
             if (isset($_POST['paymentId']) && isset($_POST['orderId']) && isset($_POST['hash']) 
@@ -171,7 +130,7 @@ class Payment extends AbstractMethod
                 $receivedAmountBTC = addslashes(filter_input(INPUT_POST, 'receivedAmountBTC', FILTER_SANITIZE_NUMBER_INT));
                 $receivedAmountUSD = addslashes(filter_input(INPUT_POST, 'receivedAmountUSD', FILTER_SANITIZE_STRING));
                 $status = addslashes(filter_input(INPUT_POST, 'status', FILTER_SANITIZE_STRING));
-                
+                $secretCode = $this->getConfigData('spicepay_site_id');
                 if(isset($_POST['paymentCryptoAmount']) && isset($_POST['receivedCryptoAmount'])) {
                     $paymentCryptoAmount = addslashes(filter_input(INPUT_POST, 'paymentCryptoAmount', FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION));
                     $receivedCryptoAmount = addslashes(filter_input(INPUT_POST, 'receivedCryptoAmount', FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION));
@@ -180,38 +139,35 @@ class Payment extends AbstractMethod
                     $paymentCryptoAmount = addslashes(filter_input(INPUT_POST, 'paymentAmountBTC', FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION));
                     $receivedCryptoAmount = addslashes(filter_input(INPUT_POST, 'receivedAmountBTC', FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION));
                 }
-                
-                $secretCode = $this->getConfigData('spicepay_callback_secret');
-                $cgOrder = \SpicePay\Merchant\Order::find($orderId);
 
+                $magentoOrderId = $orderId;
+                $zeroes =  9 - (int) strlen($magentoOrderId);
+                for ($i=0; $i < $zeroes; $i++) { 
+                    $magentoOrderId= '0'.$magentoOrderId;
+                }
+
+                $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+                $orders = $objectManager->create('Magento\Sales\Model\Order')->load($magentoOrderId);
+                $orderTotal= $orders->getGrandTotal();
                 $hashString = $secretCode . $paymentId . $orderId . $clientId . $paymentCryptoAmount . $paymentAmountUSD . $receivedCryptoAmount . $receivedAmountUSD . $status;
-                write_log('Order ID '.$order->get_id());
-                if ($cgOrder) {
-                                    
+
+                if (!empty($orderTotal)) {
                     if (0 == strcmp(md5($hashString), $hash)) {
-                        
                     
-                        $sum = number_format($order->get_total(), 2, '.', ''); 
+                        $sum = number_format($orderTotal, 2, '.', ''); 
                           if ((float)$sum != $receivedAmountUSD) {
                                     throw new \Exception('Bad amount.');
                           } else {
 
-                                if ($cgOrder->status == 'paid') {
-                                    $order->setState(Order::STATE_PROCESSING);
-                                    $order->setStatus($order->getConfig()->getStateDefaultStatus(Order::STATE_PROCESSING));
-                                    $order->save();
-                                } elseif (in_array($cgOrder->status, ['invalid', 'expired', 'canceled', 'refunded'])) {
-                                    $this->orderManagement->cancel($cgOrder->order_id);
+                                if ($status == 'paid') {
+                                    $orders->setState(Order::STATE_PROCESSING);
+                                    $orders->setStatus($orders->getConfig()->getStateDefaultStatus(Order::STATE_PROCESSING));
+                                    $orders->save();
+                                } elseif (in_array($status, ['invalid', 'expired', 'canceled', 'refunded'])) {
+                                    $this->orderManagement->cancel($orderId);
 
                                 }
 
-                                $order_value = new WC_Order($order->get_id());
-
-                                if (!empty($order_value)) {
-                                 $order_value->update_status($this->order_status_after);
-                                }
-                              echo 'OK';
-                              write_log('OK');
                           
                           }
                         
@@ -223,10 +179,8 @@ class Payment extends AbstractMethod
                 
                 
             } else {
-                echo 'fail';
-                write_log('fail');
+                throw new \Exception('Fail');
             }
-
 
         } catch (\Exception $e) {
             $this->_logger->error($e);

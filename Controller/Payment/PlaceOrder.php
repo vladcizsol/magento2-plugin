@@ -73,9 +73,7 @@ class PlaceOrder extends Action
 
     public function execute()
     {
-        $id = $this->checkoutSession->getLastOrderId();
-
-        $order = $this->orderFactory->create()->load($id);
+        $order = $this->orderFactory->create()->load($_GET['orderId']);
 
         if (!$order->getIncrementId()) {
             $this->getResponse()->setBody(json_encode([
@@ -90,7 +88,7 @@ class PlaceOrder extends Action
         $quote->setIsActive(1);
         $this->quoteRepository->save($quote);
 
-        $this->getResponse()->setBody(json_encode($this->spicepayPayment->getSpicePayRequest($order)));
+        $this->spicepayPayment->getSpicePayRequest($order);
     }
 
 }
