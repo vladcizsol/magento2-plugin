@@ -3,7 +3,7 @@
     "type": "magento2-module",
     "description": "Bitcoin and Altcoin Payment Gateway for Magento 2 via SpicePay",
     "version": "1.2.6",
-    "minimum-stability": "alpha",
+    "minimum-stability": "dev",
     "prefer-stable": true,
     "repositories": [
         {
