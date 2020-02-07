@@ -33,7 +33,7 @@ use Magento\Sales\Api\OrderManagementInterface;
 
 class Payment extends AbstractMethod
 {
-    const COINGATE_MAGENTO_VERSION = '1.0.0';
+    const COINGATE_MAGENTO_VERSION = '1.0.1';
     const CODE = 'spicepay_merchant';
 
     protected $_code = 'spicepay_merchant';
