@@ -30,8 +30,6 @@
         }
     ],
     "require": {
-        "spicepay/spicepay-php": "dev-master",
-        "magento/framework": ">=100.1.0@dev"
     },
     "autoload": {
         "files": [ "registration.php" ],
