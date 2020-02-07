@@ -3,7 +3,7 @@
     "type": "magento2-module",
     "description": "Bitcoin and Altcoin Payment Gateway for Magento 2 via SpicePay",
     "version": "1.0.0",
-    "minimum-stability": "stable",
+    "minimum-stability": "dev",
     "prefer-stable": true,
     "keywords": [
       "spicepay",
@@ -30,8 +30,8 @@
         }
     ],
     "require": {
-        "spicepay/spicepay-php": "1.*",
-        "magento/framework": ">=100.1.0"
+        "spicepay/spicepay-php": "1.*@dev",
+        "magento/framework": ">=100.1.0@dev"
     },
     "autoload": {
         "files": [ "registration.php" ],
